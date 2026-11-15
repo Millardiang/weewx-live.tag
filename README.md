@@ -1,4 +1,4 @@
-# weewx-livetag
+# weewx-live.tag
 
 Adds a `$live` tag to WeeWX templates. It works like `$current`, but it
 reads the latest LOOP packet instead of the last archive record. The value
