@@ -13,6 +13,8 @@ The changes:
                     loads the live-update script, so every Seasons page gets it.
   index.html.tmpl   '#set global $current = $getVar("live", $current)' near
                     the top, so the Current Conditions panel goes live.
+  skin.conf         SKIN_NAME / SKIN_VERSION become "Seasons Live" / the
+                    extension version, shown in "About this station".
 
 Both edits fall back to the stock behaviour if $live is not available, so
 the pages still render if the extension is removed. Each edit is wrapped in
@@ -35,6 +37,9 @@ import os
 import re
 import shutil
 import sys
+
+VERSION = '1.0.0'          # keep in step with livetag.py
+SKIN_NAME = 'Seasons Live'
 
 BEGIN = '## livetag:begin (added by weewx-livetag; "livetag_seasons.py revert" undoes it)'
 END = '## livetag:end'
@@ -201,6 +206,25 @@ def _apply_index(text):
     return ''.join(lines), 'Current Conditions made live'
 
 
+SKIN_LINE_RE = re.compile(r'^(SKIN_NAME|SKIN_VERSION)[ \t]*=.*$', re.MULTILINE)
+
+
+def _apply_skinconf(text):
+    if is_applied(text):
+        return None, 'already applied'
+    values = {'SKIN_NAME': SKIN_NAME, 'SKIN_VERSION': VERSION}
+    found = []
+
+    def repl(m):
+        found.append(m.group(1))
+        return _wrap('%s = %s' % (m.group(1), values[m.group(1)]), m.group(0)).rstrip('\n')
+
+    new = SKIN_LINE_RE.sub(repl, text)
+    if not found:
+        raise SeasonsError('skin.conf: no SKIN_NAME / SKIN_VERSION lines found')
+    return new, 'skin shown as "%s %s"' % (SKIN_NAME, VERSION)
+
+
 # --------------------------------------------------------------- revert ----
 
 def _revert(text):
@@ -260,18 +284,21 @@ def _clean_legacy(name, text):
             while prev != t:   # a block may have been nested in another one
                 prev, t = t, LEGACY_TITLEBAR_RE.sub(lambda m: m.group(1) + '\n', t)
             return t
-    else:
+    elif name == 'index.html.tmpl':
         def f(t):
             for r in LEGACY_INDEX_RES:
                 t = r.sub('', t)
             return t
+    else:
+        return text, False
     new = _strip_outside_markers(text, f)
     return new, new != text
 
 
 # ------------------------------------------------------------------ API ----
 
-FILES = (('titlebar.inc', _apply_titlebar), ('index.html.tmpl', _apply_index))
+FILES = (('titlebar.inc', _apply_titlebar), ('index.html.tmpl', _apply_index),
+         ('skin.conf', _apply_skinconf))
 
 
 def apply(skin_dir=None, dry_run=False, out=print):
