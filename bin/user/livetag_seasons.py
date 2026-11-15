@@ -217,6 +217,58 @@ def _revert(text):
     return MARKED_RE.sub(restore, text)
 
 
+# --------------------------------------------------------------- legacy ----
+# Hand-made edits from before the markers existed: an unmarked
+#   #if $hasVar("live") ... #else <stock lastupdate line> #end if
+# block in titlebar.inc, and in index.html.tmpl an unmarked '#set global
+# $current = ...live...' line and an '#if $hasVar("live") $live.script #end if'.
+# Left in place, the old title bar block hides the new one inside its #else.
+
+LEGACY_TITLEBAR_RE = re.compile(
+    r'^[ \t]*#if \$hasVar\("live"\)[ \t]*\n'
+    r'(?:(?!^[ \t]*## livetag:begin).)*?'
+    r'^[ \t]*#else[ \t]*\n'
+    r'([ \t]*<p class="lastupdate">\$current\.dateTime</p>)[ \t]*\n'
+    r'[ \t]*#end if[ \t]*\n?',
+    re.MULTILINE | re.DOTALL)
+
+LEGACY_INDEX_RES = [
+    re.compile(r'^[ \t]*#set global \$current = \$(?:live|getVar\("live", \$current\))[ \t]*\n',
+               re.MULTILINE),
+    re.compile(r'^[ \t]*#if \$hasVar\("live"\)[ \t]*\n[ \t]*\$live\.script[ \t]*\n'
+               r'[ \t]*#end if[ \t]*\n', re.MULTILINE),
+    re.compile(r'^[ \t]*\$live\.script[ \t]*\n', re.MULTILINE),
+]
+
+
+def _strip_outside_markers(text, func):
+    """Apply func only to the parts of text outside livetag markers."""
+    out, pos = [], 0
+    for m in MARKED_RE.finditer(text):
+        out.append(func(text[pos:m.start()]))
+        out.append(m.group(0))
+        pos = m.end()
+    out.append(func(text[pos:]))
+    return ''.join(out)
+
+
+def _clean_legacy(name, text):
+    """Return (text, removed?) with old unmarked hand edits removed."""
+    if name == 'titlebar.inc':
+        def f(t):
+            prev = None
+            while prev != t:   # a block may have been nested in another one
+                prev, t = t, LEGACY_TITLEBAR_RE.sub(lambda m: m.group(1) + '\n', t)
+            return t
+    else:
+        def f(t):
+            for r in LEGACY_INDEX_RES:
+                t = r.sub('', t)
+            return t
+    new = _strip_outside_markers(text, f)
+    return new, new != text
+
+
 # ------------------------------------------------------------------ API ----
 
 FILES = (('titlebar.inc', _apply_titlebar), ('index.html.tmpl', _apply_index))
@@ -232,12 +284,15 @@ def apply(skin_dir=None, dry_run=False, out=print):
             continue
         text = _read(path)
         base = _revert(text)            # strip an earlier livetag block, if any
-        new, msg = func(base if base is not None else text)
-        if base is not None:
-            if new == text:
-                new, msg = None, 'already up to date'
-            else:
-                msg = 'updated to this version'
+        base = text if base is None else base
+        base, had_legacy = _clean_legacy(name, base)
+        new, msg = func(base)
+        if new == text:
+            new, msg = None, 'already up to date'
+        elif had_legacy:
+            msg = 'removed an older hand-made live block; ' + msg
+        elif base != text:
+            msg = 'updated to this version'
         if new is not None:
             _write(path, new, dry_run)
             changed = True
