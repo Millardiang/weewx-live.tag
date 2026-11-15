@@ -197,7 +197,7 @@ What changes and what doesn't:
 
 ## Live Seasons
 
-`livetag_seasons.py` (or the installer, if you answer yes) makes two edits
+`livetag_seasons.py` (or the installer, if you answer yes) makes three edits
 to the stock Seasons skin:
 
 * **`titlebar.inc`**: the "last update" line becomes a live clock that ticks
@@ -212,6 +212,10 @@ to the stock Seasons skin:
 * **`index.html.tmpl`**: one line near the top,
   `#set global $current = $getVar("live", $current)`, so the front page's
   Current Conditions panel updates live.
+* **`skin.conf`**: `SKIN_NAME = Seasons Live` and `SKIN_VERSION = 1.0.0`
+  (the extension version), so "About this station" shows
+  *Skin: Seasons Live 1.0.0*. The original values are kept in the markers,
+  and `revert` puts them back.
 
 `rss.xml`, the NOAA reports and the other templates are not changed.
 
@@ -254,18 +258,22 @@ files:
 These files are produced by `livetag_seasons.py apply`, so they match what
 the script writes. If your Seasons skin is the stock 5.5.2 one, you can copy
 the two complete files over the ones in `skins/Seasons/` instead of running
-the script. `status` and `revert` recognise them either way. For another
+the script. `status` and `revert` recognise them either way. Check the
+`SKIN_VERSION` in your Seasons `skin.conf` first: an older Seasons (e.g.
+5.4.0, which is often left in place by WeeWX upgrades) has slightly different
+templates, so use the script there. For another
 WeeWX version, use the script or the block file, so your version's other
 template changes are kept.
 
 ### By hand
 
-The two edits, if you prefer to do them yourself:
+The edits, if you prefer to do them yourself:
 
 1. In `index.html.tmpl`, under `#errorCatcher Echo`:
    `#set global $current = $getVar("live", $current)`
 2. In `titlebar.inc`, replace `<p class="lastupdate">$current.dateTime</p>`
    with the contents of `seasons/titlebar-live-block.inc`.
+3. In `skin.conf`, set `SKIN_NAME = Seasons Live` and `SKIN_VERSION = 1.0.0`.
 
 Use the fail-safe `$getVar("live", $current)` form shown here. With a plain
 `#set global $current = $live`, the whole template fails with
@@ -404,3 +412,14 @@ show `livetag: version …, report 'SeasonsReport' -> …/live.json`. If it
 says `no report lists user.livetag.LiveTags; defaulting to 'SeasonsReport'`,
 the JSON is still being written, but the `search_list_extensions` setting
 isn't where WeeWX expects it, so templates can't use `$live`.
+
+**The title bar clock doesn't tick every second**: the page is still running
+an older title bar. Check by viewing the page source in the browser and
+searching for `stationTs`. If it isn't there:
+
+* Run `livetag_seasons.py apply` again. It removes title bar blocks that were
+  pasted in by hand before the `## livetag` markers existed. Those old blocks
+  contained the stock `lastupdate` line, so an earlier `apply` could put the
+  new block inside the old one's `#else`, where it never shows.
+* Wait for the next report run, then reload with a hard refresh (Ctrl+F5, or
+  Cmd+Shift+R on a Mac) so the browser doesn't show a cached page.
