@@ -1,0 +1,102 @@
+#encoding UTF-8
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>$station.location - Live</title>
+  <style>
+    :root { --bg: #f4f6f8; --card: #ffffff; --ink: #1d2733; --muted: #6b7785; --accent: #1e88e5; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #11161c; --card: #1b222b; --ink: #e6edf3; --muted: #8b98a5; --accent: #64b5f6; }
+    }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+           background: var(--bg); color: var(--ink); }
+    header { padding: 1.5rem 1.5rem 0.5rem; }
+    h1 { margin: 0; font-size: 1.4rem; }
+    .meta { color: var(--muted); font-size: 0.9rem; margin-top: 0.3rem; }
+    .grid { display: grid; gap: 1rem; padding: 1rem 1.5rem 2rem;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    .card { background: var(--card); border-radius: 12px; padding: 1rem 1.1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .card .name { color: var(--muted); font-size: 0.8rem; text-transform: uppercase;
+                  letter-spacing: .04em; }
+    .card .big { font-size: 1.9rem; font-weight: 600; margin: .35rem 0 .2rem;
+                 font-variant-numeric: tabular-nums; }
+    .card .unit { font-size: 1rem; color: var(--muted); margin-left: .15rem; }
+    .card .sub { color: var(--muted); font-size: 0.8rem; }
+
+    /* Supplied by the $live JavaScript */
+    .weewx-live { transition: color .6s ease; }
+    .weewx-live-changed { color: var(--accent); }
+    .status::before { content: "\25CF"; color: #2e7d32; margin-right: .35rem; }
+    html.weewx-live-stale .status::before { color: #c62828; }
+    html.weewx-live-stale .status::after { content: " (no fresh data)"; color: #c62828; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>$station.location</h1>
+    <div class="meta">
+      <span class="status">Live</span> &middot; updated $live.dateTime
+      &middot; <span id="age">&nbsp;</span>
+    </div>
+  </header>
+
+  <section class="grid">
+    <div class="card">
+      <div class="name">Outside temperature</div>
+      <div class="big">$live.outTemp.value<span class="unit">$live.outTemp.label</span></div>
+      <div class="sub">Last archive record: $current.outTemp</div>
+    </div>
+    <div class="card">
+      <div class="name">Feels like</div>
+      <div class="big">$live.appTemp.value<span class="unit">$live.appTemp.label</span></div>
+      <div class="sub">Wind chill $live.windchill &middot; Heat index $live.heatindex</div>
+    </div>
+    <div class="card">
+      <div class="name">Dew point</div>
+      <div class="big">$live.dewpoint.value<span class="unit">$live.dewpoint.label</span></div>
+      <div class="sub">Humidity $live.outHumidity</div>
+    </div>
+    <div class="card">
+      <div class="name">Wind</div>
+      <div class="big">$live.windSpeed.value<span class="unit">$live.windSpeed.label</span></div>
+      <div class="sub">From $live.windDir.compass ($live.windDir) &middot; gust $live.windGust</div>
+    </div>
+    <div class="card">
+      <div class="name">Barometer</div>
+      <div class="big">$live.barometer.value<span class="unit">$live.barometer.label</span></div>
+      <div class="sub">Today: $day.barometer.min to $day.barometer.max</div>
+    </div>
+    <div class="card">
+      <div class="name">Rain rate</div>
+      <div class="big">$live.rainRate.value<span class="unit">$live.rainRate.label</span></div>
+      <div class="sub">Today's total: $day.rain.sum</div>
+    </div>
+    <div class="card">
+      <div class="name">Solar</div>
+      <div class="big">$live.radiation.value<span class="unit">$live.radiation.label</span></div>
+      <div class="sub">UV index $live.UV</div>
+    </div>
+    <div class="card">
+      <div class="name">Inside</div>
+      <div class="big">$live.inTemp.value<span class="unit">$live.inTemp.label</span></div>
+      <div class="sub">Humidity $live.inHumidity</div>
+    </div>
+  </section>
+
+  $live.script
+
+  <script>
+    // Example of hooking the update event (e.g. to drive gauges or charts).
+    (function () {
+      var last = Date.now(), el = document.getElementById('age');
+      document.addEventListener('weewx-live', function () { last = Date.now(); });
+      setInterval(function () {
+        el.textContent = Math.round((Date.now() - last) / 1000) + 's ago';
+      }, 1000);
+    })();
+  </script>
+</body>
+</html>

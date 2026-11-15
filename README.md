@@ -104,7 +104,9 @@ Seasons either way):
             search_list_extensions = user.livetag.LiveTags
 ```
 
-**Demo skin (optional).** Add this under `[StdReport]`:
+**Demo skin (optional).** It produces a single page, `livedemo.html`.
+Because it isn't called `index.html`, it can't overwrite the Seasons front
+page. Add this under `[StdReport]`:
 
 ```
     [[LiveDemo]]
@@ -112,6 +114,10 @@ Seasons either way):
         HTML_ROOT = public_html/live
         enable = true
 ```
+
+The page is then at `…/live/livedemo.html`. Keeping its own `HTML_ROOT`
+also gives it its own `live.json`, so it doesn't change the Seasons file's
+name (see "Where `live.json` goes").
 
 **Other skins.** Add the same `search_list_extensions` line to that report,
 either in its `skin.conf` or in `weewx.conf`. If the skin already has

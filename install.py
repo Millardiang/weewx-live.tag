@@ -47,7 +47,7 @@ class LiveTagInstaller(ExtensionInstaller):
             files=[
                 ('bin/user', ['bin/user/livetag.py', 'bin/user/livetag_seasons.py']),
                 ('skins/LiveDemo', ['skins/LiveDemo/skin.conf',
-                                    'skins/LiveDemo/index.html.tmpl']),
+                                    'skins/LiveDemo/livedemo.html.tmpl']),
             ],
         )
 
